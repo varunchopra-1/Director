@@ -30,6 +30,8 @@ class VideoDBProxyConfig(BaseLLMConfig):
     mongodb_uri: str = os.getenv("MONGODB_URI")
     mongodb_db_name: str = os.getenv("MONGODB_DB_NAME", "director_memory")
     mongodb_collection: str = os.getenv("MONGODB_COLLECTION", "chat_memory")
+
+    embedding_api_key: str = os.getenv("EMBEDDING_OPENAI_API_KEY")
     embedding_model: str = "text-embedding-ada-002"
     memory_limit: int = 5  
     similarity_threshold: float = 0.75
@@ -78,6 +80,8 @@ class VideoDBProxy(BaseLLM):
             raise ImportError(f"Please install required libraries: {', '.join(missing_libs)}")
 
         self.client = openai.OpenAI(api_key=self.api_key, base_url=f"{self.api_base}")
+
+        self.embeddings_client = openai.OpenAI(api_key=self.config.embedding_api_key)
         
         self.mongo_client = MongoClient(self.config.mongodb_uri)
         self.db = self.mongo_client[self.config.mongodb_db_name]
@@ -127,7 +131,7 @@ class VideoDBProxy(BaseLLM):
         """
         try:
             print(text)
-            response = self.client.embeddings.create(
+            response = self.embeddings_client.embeddings.create(
                 input=text,
                 model=self.config.embedding_model
             )
